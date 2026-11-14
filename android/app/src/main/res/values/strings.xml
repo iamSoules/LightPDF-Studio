@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LightPDF Studio</string>
+    <string name="title_activity_main">LightPDF Studio</string>
+    <string name="package_name">org.lightpdf.studio</string>
+    <string name="custom_url_scheme">org.lightpdf.studio</string>
+</resources>
