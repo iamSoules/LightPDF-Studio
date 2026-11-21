@@ -83,7 +83,7 @@ crates/lightpdf-core/      PDF-Engine ohne Oberfläche
 crates/lightpdf-studio/    App (egui/eframe)
   reader/                  Ansicht, Eingabe, Zeichnen, Werkzeugleisten
   library.rs, organizer.rs, dialogs.rs, signature.rs, browser.rs (nur iOS), platform.rs, storage.rs
-packaging/                 Info.plist (macOS/iOS), .desktop-Datei, Symbole
+packaging/                 Info.plist (macOS/iOS), .desktop-Datei, Symbole (aus icon.svg: make-icons.py)
 ```
 
 ## Herkunft
