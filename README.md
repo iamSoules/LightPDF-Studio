@@ -57,10 +57,12 @@ cargo run --release              # Desktop-App starten (optional: Pfad zu einem 
 cargo test --workspace           # alle Tests (PDF-Engine, Gesten, UI)
 ```
 
-Android (Android SDK + NDK, `cargo install cargo-apk`):
+Android (Android SDK + NDK, JDK, `cargo install cargo-apk`):
 
 ```bash
 cargo apk build -p lightpdf-studio --release --lib
+# fügt MainActivity (Java, System-Dateiauswahl) hinzu und signiert neu
+packaging/android/add-java.sh target/release/apk/LightPDF-Studio.apk <keystore.jks> <passwort>
 ```
 
 iOS (auf einem Mac mit Xcode): `cargo build --release --target aarch64-apple-ios -p lightpdf-studio`. Wie daraus ein App-Bundle wird, steht im Workflow.
@@ -80,7 +82,7 @@ crates/lightpdf-core/      PDF-Engine ohne Oberfläche
   pdfdoc.rs, geom.rs, text.rs, model.rs
 crates/lightpdf-studio/    App (egui/eframe)
   reader/                  Ansicht, Eingabe, Zeichnen, Werkzeugleisten
-  library.rs, organizer.rs, dialogs.rs, signature.rs, browser.rs, platform.rs, storage.rs
+  library.rs, organizer.rs, dialogs.rs, signature.rs, browser.rs (nur iOS), platform.rs, storage.rs
 packaging/                 Info.plist (macOS/iOS), .desktop-Datei, Symbole
 ```
 

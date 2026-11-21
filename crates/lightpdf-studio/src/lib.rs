@@ -3,6 +3,7 @@
 //! One code base for Windows, macOS, Linux, Android and iOS (egui + eframe).
 
 pub mod app;
+#[cfg(target_os = "ios")]
 pub mod browser;
 pub mod dialogs;
 pub mod i18n;

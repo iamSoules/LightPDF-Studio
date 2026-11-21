@@ -54,8 +54,11 @@ target_sdk_version = 34
 label = "LightPDF Studio"
 icon = "@mipmap/ic_launcher"
 theme = "@style/Theme.LightPDF"
+# MainActivity (android/java) is added after cargo-apk by packaging/android/add-java.sh
+has_code = true
 
 [package.metadata.android.application.activity]
+name = "org.lightpdf.studio.MainActivity"
 config_changes = "orientation|keyboardHidden|screenSize|screenLayout|uiMode"
 launch_mode = "singleTask"
 orientation = "unspecified"

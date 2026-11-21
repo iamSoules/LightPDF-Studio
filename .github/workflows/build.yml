@@ -109,6 +109,8 @@ jobs:
           export CARGO_APK_RELEASE_KEYSTORE=$PWD/crates/lightpdf-studio/android/lightpdf-release.jks
           export CARGO_APK_RELEASE_KEYSTORE_PASSWORD=$(grep '^storePassword=' $P | cut -d= -f2-)
           cargo apk build -p lightpdf-studio --release --lib
+          # MainActivity (system file picker) is Java; cargo-apk can't compile it
+          packaging/android/add-java.sh target/release/apk/LightPDF-Studio.apk "$CARGO_APK_RELEASE_KEYSTORE" "$CARGO_APK_RELEASE_KEYSTORE_PASSWORD"
           V=$(cargo pkgid -p lightpdf-studio | sed 's/.*[#@]//')
           cp target/release/apk/LightPDF-Studio.apk LightPDF-Studio-$V-Android.apk
       - uses: actions/upload-artifact@v4

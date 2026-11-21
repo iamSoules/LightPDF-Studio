@@ -236,7 +236,7 @@ impl Reader {
             let resp = ui.allocate_rect(rect, Sense::hover());
             let layer = ui.layer_id();
             let blocked = |p: Pos2| ctx.layer_id_at(p).is_some_and(|l| l != layer);
-            if self.organizer.is_none() && self.dialog.is_none() && s.browser.is_none() && s.password.is_none() {
+            if self.organizer.is_none() && self.dialog.is_none() && !s.picker_open() && s.password.is_none() {
                 self.handle_input(&ctx, &blocked);
             }
             self.clamp_offset();

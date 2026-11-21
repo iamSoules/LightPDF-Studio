@@ -2,8 +2,9 @@
 //!
 //! * Windows / macOS / Linux: native dialogs (`rfd`), "Open with" via command-line arguments,
 //!   drag & drop, saving writes back to the original file.
-//! * Android: "Open with" / "Share" intents (content URIs read through the ContentResolver
-//!   via JNI), saving writes back to the URI when allowed, exports go to Downloads.
+//! * Android: the system file picker (via `MainActivity`, see `android/java`), "Open with" /
+//!   "Share" intents (content URIs read through the ContentResolver via JNI), saving writes
+//!   back to the URI when allowed, exports go to Downloads.
 //! * iOS: files arrive in the app's Documents folder (Files app, "Open in…"), the in-app
 //!   file browser shows that folder.
 
@@ -92,20 +93,6 @@ mod imp {
         read(std::env::args().skip(1).filter(|a| !a.starts_with('-')).map(PathBuf::from).collect())
     }
 
-    pub fn browse_roots() -> Vec<(String, PathBuf)> {
-        let mut v = Vec::new();
-        if let Some(u) = directories::UserDirs::new() {
-            if let Some(d) = u.document_dir() {
-                v.push((crate::i18n::tr("Dokumente"), d.to_path_buf()));
-            }
-            if let Some(d) = u.download_dir() {
-                v.push(("Downloads".into(), d.to_path_buf()));
-            }
-            v.push(("Home".into(), u.home_dir().to_path_buf()));
-        }
-        v
-    }
-
     pub fn show_keyboard(_show: bool) {}
 }
 
@@ -114,7 +101,7 @@ mod imp {
 #[cfg(target_os = "android")]
 pub mod imp {
     use super::*;
-    use jni::objects::{JByteArray, JObject, JValue};
+    use jni::objects::{JByteArray, JObject, JObjectArray, JValue};
     use jni::{JNIEnv, JavaVM};
     use std::sync::OnceLock;
     use winit::platform::android::activity::AndroidApp;
@@ -302,7 +289,7 @@ pub mod imp {
     }
 
     pub fn pick_files(_title: &str, _ext: &[&str], _multi: bool) -> Vec<IncomingFile> {
-        vec![] // in-app browser is used instead
+        vec![] // the system picker is opened with start_pick() instead
     }
 
     pub fn open_url(url: &str) {
@@ -323,12 +310,70 @@ pub mod imp {
         save_as(name, bytes, "pdf").map(|_| ())
     }
 
-    pub fn browse_roots() -> Vec<(String, PathBuf)> {
-        vec![
-            ("Downloads".into(), PathBuf::from("/storage/emulated/0/Download")),
-            (crate::i18n::tr("Dokumente"), PathBuf::from("/storage/emulated/0/Documents")),
-            ("Speicher".into(), PathBuf::from("/storage/emulated/0")),
-        ]
+    fn mime_types(ext: &[&str]) -> Vec<&'static str> {
+        let mut v: Vec<&'static str> = Vec::new();
+        for e in ext {
+            let m = match e.to_ascii_lowercase().as_str() {
+                "pdf" => "application/pdf",
+                "png" => "image/png",
+                "jpg" | "jpeg" => "image/jpeg",
+                "webp" => "image/webp",
+                "gif" => "image/gif",
+                "bmp" => "image/bmp",
+                _ => "*/*",
+            };
+            if !v.contains(&m) {
+                v.push(m);
+            }
+        }
+        v
+    }
+
+    /// Opens the system file picker. The result arrives later through [`poll_picked`].
+    pub fn start_pick(ext: &[&str], multi: bool) -> Result<(), String> {
+        let mimes = mime_types(ext);
+        with_env(|env, activity| {
+            let arr = env.new_object_array(mimes.len() as i32, "java/lang/String", JObject::null())?;
+            for (i, m) in mimes.iter().enumerate() {
+                let js = env.new_string(m)?;
+                env.set_object_array_element(&arr, i as i32, js)?;
+            }
+            env.call_method(activity, "pickFiles", "([Ljava/lang/String;Z)V", &[JValue::Object(&arr), JValue::Bool(multi as u8)])?;
+            Ok(())
+        })
+    }
+
+    /// `None` while the picker is still open, `Some(files)` once it closed (empty = cancelled).
+    pub fn poll_picked() -> Option<Vec<IncomingFile>> {
+        with_env(|env, activity| {
+            let arr = env.call_method(activity, "takePicked", "()[Ljava/lang/String;", &[])?.l()?;
+            if arr.is_null() {
+                return Ok(None);
+            }
+            let arr = JObjectArray::from(arr);
+            let n = env.get_array_length(&arr)?;
+            let mut out = Vec::new();
+            for i in 0..n {
+                let s = env.get_object_array_element(&arr, i)?;
+                let Some(s) = jstring(env, s)? else { continue };
+                let uri = parse_uri(env, &s)?;
+                match read_uri(env, activity, &uri) {
+                    Ok(bytes) => {
+                        let name = display_name(env, activity, &uri).unwrap_or_else(|| "Dokument.pdf".into());
+                        out.push(IncomingFile { name, bytes, origin: Some(s) });
+                    }
+                    Err(e) => {
+                        let _ = env.exception_clear();
+                        log::warn!("reading {s}: {e}");
+                    }
+                }
+            }
+            Ok(Some(out))
+        })
+        .unwrap_or_else(|e| {
+            log::error!("file picker: {e}");
+            Some(vec![])
+        })
     }
 
     pub fn show_keyboard(show: bool) {

@@ -1,5 +1,6 @@
 //! The application shell: screens, toasts, background tasks, incoming files.
 
+#[cfg(target_os = "ios")]
 use crate::browser::FileBrowser;
 use crate::i18n::{tr, trf};
 use crate::library::Library;
@@ -37,7 +38,7 @@ pub struct PasswordPrompt {
     pub wrong: bool,
 }
 
-/// What the in-app file browser was opened for.
+/// What a file picker was opened for.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum BrowsePurpose {
     Open,
@@ -55,7 +56,11 @@ pub struct Studio {
     pub library: Library,
     pub toasts: Vec<Toast>,
     pub tasks: Tasks,
+    /// iOS: in-app file browser (no system picker hooked up there yet).
+    #[cfg(target_os = "ios")]
     pub browser: Option<(FileBrowser, BrowsePurpose)>,
+    /// Android: the system file picker is open for this purpose.
+    pub pending_pick: Option<BrowsePurpose>,
     pub password: Option<PasswordPrompt>,
     pub ctx: egui::Context,
     applied_theme: Option<(bool, bool)>,
@@ -82,7 +87,9 @@ impl Studio {
             library: Library::default(),
             toasts: Vec::new(),
             tasks: Tasks::default(),
+            #[cfg(target_os = "ios")]
             browser: None,
+            pending_pick: None,
             password: None,
             ctx: cc.egui_ctx.clone(),
             applied_theme: None,
@@ -190,7 +197,8 @@ impl Studio {
         self.screen = Screen::Library;
     }
 
-    /// Native dialog on desktop, in-app browser on mobile.
+    /// Native dialog on desktop (returns the files right away). On Android the system picker
+    /// opens and the files arrive later through `handle_picked`; on iOS the in-app browser.
     pub fn pick(&mut self, purpose: BrowsePurpose) -> Option<Vec<IncomingFile>> {
         let (ext, multi): (&[&str], bool) = match purpose {
             BrowsePurpose::Images | BrowsePurpose::ImagesToPdf => (&["png", "jpg", "jpeg", "webp", "gif", "bmp"], true),
@@ -202,8 +210,25 @@ impl Studio {
             let files = platform::pick_files(&tr("Datei öffnen"), ext, multi);
             return Some(files);
         }
-        self.browser = Some((FileBrowser::new(ext, multi), purpose));
+        #[cfg(target_os = "android")]
+        match platform::start_pick(ext, multi) {
+            Ok(()) => self.pending_pick = Some(purpose),
+            Err(e) => self.toast_err(e),
+        }
+        #[cfg(target_os = "ios")]
+        {
+            self.browser = Some((FileBrowser::new(ext, multi), purpose));
+        }
         None
+    }
+
+    /// A file picker is open (keyboard shortcuts are paused meanwhile).
+    pub fn picker_open(&self) -> bool {
+        #[cfg(target_os = "ios")]
+        if self.browser.is_some() {
+            return true;
+        }
+        self.pending_pick.is_some()
     }
 
     pub fn handle_picked(&mut self, purpose: BrowsePurpose, files: Vec<IncomingFile>) {
@@ -472,9 +497,11 @@ impl eframe::App for Studio {
 
         // Android back button / Escape
         if ctx.input(|i| i.key_pressed(egui::Key::BrowserBack)) {
-            if self.browser.is_some() {
-                self.browser = None;
-            } else if let Screen::Reader(r) = &mut self.screen {
+            #[cfg(target_os = "ios")]
+            let closed_browser = self.browser.take().is_some();
+            #[cfg(not(target_os = "ios"))]
+            let closed_browser = false;
+            if !closed_browser && let Screen::Reader(r) = &mut self.screen {
                 r.request_close();
             }
         }
@@ -488,6 +515,14 @@ impl eframe::App for Studio {
             Screen::Reader(_) => crate::reader::show(self, ui),
         }
 
+        #[cfg(target_os = "android")]
+        if let Some(purpose) = self.pending_pick
+            && let Some(files) = platform::poll_picked()
+        {
+            self.pending_pick = None;
+            self.handle_picked(purpose, files);
+        }
+        #[cfg(target_os = "ios")]
         if let Some((b, purpose)) = &mut self.browser {
             let purpose = *purpose;
             match b.show(&ctx, &self.pal) {
