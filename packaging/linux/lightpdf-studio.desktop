@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=LightPDF Studio
+GenericName=PDF Editor
+GenericName[de]=PDF-Editor
+Comment=Read, annotate, fill & sign PDF files
+Comment[de]=PDFs lesen, kommentieren, ausfüllen und signieren
+Exec=lightpdf-studio %F
+Icon=lightpdf-studio
+Terminal=false
+Categories=Office;Viewer;Graphics;
+MimeType=application/pdf;
+Keywords=PDF;Annotate;Sign;Merge;

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>LightPDF Studio</string>
+  <key>CFBundleDisplayName</key><string>LightPDF</string>
+  <key>CFBundleIdentifier</key><string>org.lightpdf.studio</string>
+  <key>CFBundleExecutable</key><string>lightpdf-studio</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>VERSION</string>
+  <key>CFBundleVersion</key><string>VERSION</string>
+  <key>CFBundleIcons</key>
+  <dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconFiles</key><array><string>AppIcon</string></array></dict></dict>
+  <key>MinimumOSVersion</key><string>15.0</string>
+  <key>UIDeviceFamily</key><array><integer>1</integer><integer>2</integer></array>
+  <key>UIRequiredDeviceCapabilities</key><array><string>arm64</string></array>
+  <key>UILaunchScreen</key><dict/>
+  <key>UIApplicationSupportsIndirectInputEvents</key><true/>
+  <key>UISupportedInterfaceOrientations</key>
+  <array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string><string>UIInterfaceOrientationPortraitUpsideDown</string></array>
+  <!-- PDFs from other apps ("Open in…") land in Documents/Inbox; the Files app shows Documents -->
+  <key>UIFileSharingEnabled</key><true/>
+  <key>LSSupportsOpeningDocumentsInPlace</key><false/>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key><string>PDF Document</string>
+      <key>CFBundleTypeRole</key><string>Editor</string>
+      <key>LSHandlerRank</key><string>Alternate</string>
+      <key>LSItemContentTypes</key><array><string>com.adobe.pdf</string></array>
+    </dict>
+  </array>
+</dict>
+</plist>

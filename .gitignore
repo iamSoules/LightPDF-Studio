@@ -1,9 +1,7 @@
-node_modules
-dist
-release
-android/app/build
-android/build
-android/.gradle
-android/local.properties
-android/app/src/main/assets/public
+/target
 *.log
+*.apk
+*.ipa
+*.dmg
+.DS_Store
+/dist
