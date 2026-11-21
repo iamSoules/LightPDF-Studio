@@ -170,6 +170,34 @@ enum Act {
     Merge(Vec<String>),
 }
 
+/// View toggle and sort order (laid out right-to-left).
+fn view_and_sort(s: &mut Studio, ui: &mut egui::Ui, with_label: bool) {
+    let grid = s.storage.lib.settings.grid;
+    if ui.button(if grid { "☰" } else { "▦" }).on_hover_text(tr("Ansicht")).clicked() {
+        s.storage.lib.settings.grid = !grid;
+        s.storage.save();
+    }
+    let sort = s.storage.lib.settings.sort;
+    let combo = if with_label { egui::ComboBox::new("sort", tr("Sortieren")) } else { egui::ComboBox::from_id_salt("sort") };
+    combo
+        .selected_text(match sort {
+            SortBy::Recent => tr("Zuletzt geöffnet"),
+            SortBy::Added => tr("Hinzugefügt"),
+            SortBy::Name => tr("Name"),
+            SortBy::Size => tr("Größe"),
+        })
+        .show_ui(ui, |ui| {
+            let st = &mut s.storage.lib.settings.sort;
+            ui.selectable_value(st, SortBy::Recent, tr("Zuletzt geöffnet"));
+            ui.selectable_value(st, SortBy::Added, tr("Hinzugefügt"));
+            ui.selectable_value(st, SortBy::Name, tr("Name"));
+            ui.selectable_value(st, SortBy::Size, tr("Größe"));
+        });
+    if s.storage.lib.settings.sort != sort {
+        s.storage.save();
+    }
+}
+
 pub fn show(s: &mut Studio, ui: &mut egui::Ui) {
     let ctx = ui.ctx().clone();
     s.library.poll(&ctx);
@@ -212,35 +240,14 @@ pub fn show(s: &mut Studio, ui: &mut egui::Ui) {
                             s.show_about = true;
                         }
                     });
-                    if theme::primary(ui, &pal, format!("🗁  {}", tr("Öffnen"))).clicked()
+                    let open_label = if narrow { "🗁".to_string() } else { format!("🗁  {}", tr("Öffnen")) };
+                    if theme::primary(ui, &pal, open_label).clicked()
                         && let Some(f) = s.pick(BrowsePurpose::Open)
                     {
                         s.handle_picked(BrowsePurpose::Open, f);
                     }
-                    let grid = s.storage.lib.settings.grid;
-                    if ui.button(if grid { "☰" } else { "▦" }).on_hover_text(tr("Ansicht")).clicked() {
-                        s.storage.lib.settings.grid = !grid;
-                        s.storage.save();
-                    }
-                    let sort = s.storage.lib.settings.sort;
-                    egui::ComboBox::new("sort", tr("Sortieren"))
-                        .selected_text(match sort {
-                            SortBy::Recent => tr("Zuletzt geöffnet"),
-                            SortBy::Added => tr("Hinzugefügt"),
-                            SortBy::Name => tr("Name"),
-                            SortBy::Size => tr("Größe"),
-                        })
-                        .show_ui(ui, |ui| {
-                            let st = &mut s.storage.lib.settings.sort;
-                            ui.selectable_value(st, SortBy::Recent, tr("Zuletzt geöffnet"));
-                            ui.selectable_value(st, SortBy::Added, tr("Hinzugefügt"));
-                            ui.selectable_value(st, SortBy::Name, tr("Name"));
-                            ui.selectable_value(st, SortBy::Size, tr("Größe"));
-                        });
-                    if s.storage.lib.settings.sort != sort {
-                        s.storage.save();
-                    }
                     if !narrow {
+                        view_and_sort(s, ui, true);
                         ui.add(
                             egui::TextEdit::singleline(&mut s.library.search)
                                 .hint_text(format!("🔍 {}", tr("Dokumente suchen …")))
@@ -250,11 +257,17 @@ pub fn show(s: &mut Studio, ui: &mut egui::Ui) {
                 });
             });
             if narrow {
-                ui.add(
-                    egui::TextEdit::singleline(&mut s.library.search)
-                        .hint_text(format!("🔍 {}", tr("Dokumente suchen …")))
-                        .desired_width(f32::INFINITY),
-                );
+                // Phone: search, view and sort get their own row below the title
+                ui.horizontal(|ui| {
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        view_and_sort(s, ui, false);
+                        ui.add(
+                            egui::TextEdit::singleline(&mut s.library.search)
+                                .hint_text(format!("🔍 {}", tr("Dokumente suchen …")))
+                                .desired_width(ui.available_width()),
+                        );
+                    });
+                });
             }
             // folders
             egui::ScrollArea::horizontal().id_salt("folders").show(ui, |ui| {

@@ -53,7 +53,7 @@ target_sdk_version = 34
 [package.metadata.android.application]
 label = "LightPDF Studio"
 icon = "@mipmap/ic_launcher"
-theme = "@android:style/Theme.DeviceDefault.NoActionBar"
+theme = "@style/Theme.LightPDF"
 
 [package.metadata.android.application.activity]
 config_changes = "orientation|keyboardHidden|screenSize|screenLayout|uiMode"

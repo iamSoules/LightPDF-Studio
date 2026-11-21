@@ -479,6 +479,10 @@ impl eframe::App for Studio {
             }
         }
 
+        // The root Ui covers the whole window, including the status/navigation bars and
+        // display cutouts. Lay the screens out inside the safe area only.
+        let mut ui = ui.new_child(egui::UiBuilder::new().max_rect(ctx.content_rect()));
+        let ui = &mut ui;
         match &mut self.screen {
             Screen::Library => crate::library::show(self, ui),
             Screen::Reader(_) => crate::reader::show(self, ui),
@@ -508,6 +512,27 @@ impl eframe::App for Studio {
         if platform::MOBILE {
             platform::show_keyboard(ctx.egui_wants_keyboard_input());
         }
+    }
+
+    /// Android: report the area hidden by the system bars, cutouts and the soft keyboard
+    /// (everything outside NativeActivity's content rect) as safe-area insets.
+    #[cfg(target_os = "android")]
+    fn raw_input_hook(&mut self, ctx: &egui::Context, raw_input: &mut egui::RawInput) {
+        let Some(app) = platform::imp::APP.get() else { return };
+        let Some(win) = app.native_window() else { return };
+        let r = app.content_rect();
+        let (w, h) = (win.width(), win.height());
+        if r.right <= r.left || r.bottom <= r.top || w <= 0 || h <= 0 {
+            return;
+        }
+        let ppp = ctx.pixels_per_point();
+        let px = |v: i32| v.max(0) as f32 / ppp;
+        raw_input.safe_area_insets = Some(egui::SafeAreaInsets(egui::epaint::MarginF32 {
+            left: px(r.left),
+            top: px(r.top),
+            right: px(w - r.right),
+            bottom: px(h - r.bottom),
+        }));
     }
 
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
