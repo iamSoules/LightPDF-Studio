@@ -251,6 +251,29 @@ impl Reader {
         }
     }
 
+    /// If the screen rect `r` isn't fully visible, scrolls it into view: vertically to the
+    /// upper third of the canvas (clear of the page chip and the soft keyboard),
+    /// horizontally just enough.
+    pub fn keep_on_screen(&mut self, r: Rect) {
+        let view = self.canvas.shrink(12.0);
+        if view.contains_rect(r) {
+            return;
+        }
+        let mut d = Vec2::ZERO;
+        if r.top() < view.top() || r.bottom() > view.bottom() {
+            d.y = (self.canvas.top() + self.canvas.height() * 0.3) - r.top();
+        }
+        if r.right() > view.right() {
+            d.x = view.right() - r.right();
+        }
+        if r.left() + d.x < view.left() {
+            d.x = view.left() - r.left();
+        }
+        self.offset += d;
+        self.fling = Vec2::ZERO;
+        self.clamp_offset();
+    }
+
     fn update_current_page(&mut self) {
         let c = self.canvas.center();
         let mut best = (f32::MAX, self.current_page);

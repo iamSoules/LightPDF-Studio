@@ -855,8 +855,16 @@ impl Reader {
         };
         let Kind::Text { rect, font_size, .. } = &a.kind else { return };
         let page = a.page as usize - 1;
-        let s = self.pdf_rect_to_screen(page, *rect);
         let size = (*font_size as f32 * self.zoom).max(6.0);
+        // When editing starts or the view shrinks (soft keyboard opens), scroll the box into view
+        if self.edit_view.as_ref() != Some(&(id.clone(), self.canvas)) {
+            let s = self.pdf_rect_to_screen(page, *rect);
+            let h = s.height().max(size * 1.4 + 10.0);
+            self.keep_on_screen(egui::Rect::from_min_size(s.min, egui::vec2(s.width().max(60.0), h)));
+            self.edit_view = Some((id.clone(), self.canvas));
+            ctx.request_repaint();
+        }
+        let s = self.pdf_rect_to_screen(page, *rect);
         let mut done = false;
         egui::Area::new(egui::Id::unique(("text-edit", id.clone()))).fixed_pos(s.min).order(egui::Order::Foreground).show(ctx, |ui| {
             egui::Frame::new().fill(Color32::from_white_alpha(230)).stroke(Stroke::new(1.5, pal.accent)).corner_radius(3).show(ui, |ui| {

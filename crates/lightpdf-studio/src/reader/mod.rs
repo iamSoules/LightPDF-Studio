@@ -246,6 +246,8 @@ pub struct Reader {
     pub selected: Option<String>,
     pub editing: Option<String>,
     pub edit_buf: String,
+    /// Annotation and view size the open editor was last scrolled into view for.
+    pub edit_view: Option<(String, egui::Rect)>,
     pub search: Search,
     pub side: Option<Side>,
     pub dialog: Option<Dialog>,
@@ -328,6 +330,7 @@ impl Reader {
             selected: None,
             editing: None,
             edit_buf: String::new(),
+            edit_view: None,
             search: Search::default(),
             side: None,
             dialog: None,
